@@ -96,7 +96,8 @@ create_moonlight_user:
       # Check the KMS config exists
       ExecStartPre=test -f $QT_QPA_EGLFS_KMS_CONFIG
       ExecStart=moonlight-qt --1440 --fps $STREAM_FPS --performance-overlay --video-codec HEVC stream $SUNSHINE_IP "Desktop"
-      Restart=on-failure
+      # We want to restart unless the process is stopped explicitly by systemd.
+      Restart=always
 
 
 /etc/systemd/system/moonlight-autolauncher.service:
@@ -134,6 +135,7 @@ create_moonlight_user:
       [Install]
       RequiredBy=moonlight.service
 
+      # Service based on Debian's pulseaudio config
       [Service]
       User=moonlight
       ExecStart=/usr/bin/pulseaudio --daemonize=no --log-target=journal
@@ -148,4 +150,11 @@ create_moonlight_user:
       Type=notify
       UMask=0077
 
-# Stop pulseaudio starting
+service_pulseaudio_enable:
+    service.enabled:
+    - name: moonlight-pulseaudio.service
+
+service_moonlight_autolauncher_enable:
+    service.enabled:
+    - name: moonlight_autolauncher.service
+
