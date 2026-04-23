@@ -18,9 +18,8 @@ create_moonlight_user:
       After=controller-active-timeout.timer
       Conflicts=controller-active-timeout.timer
       # If the controller stops, so should we
-      #StopPropagatedFrom=dev-input-game-controller.device
-      #After=dev-input-game-controller.device
-      #Requisite=dev-input-game-controller.device
+      StopPropagatedFrom=dev-input-gamecontroller.device
+      After=dev-input-gamecontroller.device
       [Service]
       Type=oneshot
       RemainAfterExit=yes
@@ -61,7 +60,7 @@ create_moonlight_user:
   file.managed:
   - mode: 644
   - contents: | 
-      ACTION=="add", ATTRS{name}=="8BitDo Ultimate 2 Wireless Controller", KERNEL=="event[0-9]*", TAG+="systemd", ENV{SYSTEMD_ALIAS}="/dev/input/game-controller", ENV{SYSTEMD_WANTS}="controller-connected.service"
+      ACTION=="add", ATTRS{name}=="8BitDo Ultimate 2 Wireless Controller", KERNEL=="event[0-9]*", TAG+="systemd", ENV{SYSTEMD_ALIAS}="/dev/input/gamecontroller", ENV{SYSTEMD_WANTS}="controller-connected.service"
 
 /etc/moonlight/eglfs.json:
   file.managed:
