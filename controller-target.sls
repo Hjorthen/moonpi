@@ -92,9 +92,10 @@ create_moonlight_user:
       Environment="STREAM_FPS=60"
       Environment=SUNSHINE_IP=192.168.1.27
       Environment="QT_QPA_EGLFS_KMS_CONFIG=/etc/moonlight/eglfs.json"
+      Environment="SDL_HINT_VIDEO_DOUBLE_BUFFER=1
       # Check the KMS config exists
       ExecStartPre=test -f $QT_QPA_EGLFS_KMS_CONFIG
-      ExecStart=moonlight-qt --1440 --fps $STREAM_FPS --performance-overlay stream $SUNSHINE_IP "Desktop"
+      ExecStart=moonlight-qt --1440 --fps $STREAM_FPS --performance-overlay --video-codec HEVC stream $SUNSHINE_IP "Desktop"
       Restart=on-failure
 
 
