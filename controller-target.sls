@@ -34,8 +34,8 @@ create_moonlight_user:
      [Unit]
      Description=Stop the controller-active target after a delay
      [Timer]
-     OnActiveSec=5min
-     AccuracySec=20s
+     OnActiveSec=10s
+     AccuracySec=2s
      RemainAfterElapse=no
 
 /etc/systemd/system/controller-active-timeout.service:
@@ -90,15 +90,37 @@ create_moonlight_user:
       [Service]
       User=moonlight
       Environment="STREAM_FPS=60"
+      # Bitrate of stream in kbps, default seems to be 40000
+      Environment=STREAM_BITRATE=20000
       Environment=SUNSHINE_IP=192.168.1.27
       Environment="QT_QPA_EGLFS_KMS_CONFIG=/etc/moonlight/eglfs.json"
-      Environment="SDL_HINT_VIDEO_DOUBLE_BUFFER=1
+      Environment="SDL_HINT_VIDEO_DOUBLE_BUFFER=1"
       # Check the KMS config exists
       ExecStartPre=test -f $QT_QPA_EGLFS_KMS_CONFIG
-      ExecStart=moonlight-qt --1440 --fps $STREAM_FPS --performance-overlay --video-codec HEVC stream $SUNSHINE_IP "Desktop"
+      ExecStart=moonlight-qt --1440 --bitrate $STREAM_BITRATE  --fps $STREAM_FPS --performance-overlay --video-codec HEVC stream $SUNSHINE_IP "Desktop"
       # We want to restart unless the process is stopped explicitly by systemd.
       Restart=always
+      RestartSec=30s
 
+/usr/local/lib/moonlight-autolauncher/restore-tty.sh:
+  file.managed:
+  - makedirs: True
+  - mode: 744
+  - contents: |
+      #!/bin/sh
+      PREV_TTY=`sed -nE 's/.*([0-9]+).*/\1/p' /run/moonlight-autolaunch-previous-tty`
+      echo "Switching back to tty$PREV_TTY"
+      chvt $PREV_TTY
+      rm /run/moonlight-autolaunch-previous-tty
+
+/usr/local/lib/moonlight-autolauncher/switch-tty.sh:
+  file.managed:
+  - makedirs: True
+  - mode: 744
+  - contents: |
+      #!/bin/sh
+      cp /sys/class/tty/tty0/active /run/moonlight-autolaunch-previous-tty 
+      chvt 4
 
 /etc/systemd/system/moonlight-autolauncher.service:
   file.managed:
@@ -108,9 +130,7 @@ create_moonlight_user:
       Description=Keeps Moonshine launched as long as a controller is connected
       Before=moonlight.service
       Requires=moonlight.service
-      # Stop moonlight if the autolauncher shuts down
-      PropagatesStopTo=moonlight.service
-      BindsTo=controller-active.target
+      StopPropagatedFrom=controller-active.target
 
       [Install]
       WantedBy=controller-active.target
@@ -119,9 +139,9 @@ create_moonlight_user:
       Type=oneshot
       RemainAfterExit=yes
       # Save the active (default) tty such that we can restore it
-      ExecStartPre=cp /sys/class/tty/tty0/active /run/moonlight-autolaunch-previous-tty 
-      ExecStart=chvt 4
-      ExecStop=sh -c 'chvt $(cat /run/moonlight-autolaunch-previous-tty)'
+      ExecStart=/usr/local/lib/moonlight-autolauncher/switch-tty.sh
+      ExecStop=/usr/local/lib/moonlight-autolauncher/restore-tty.sh
+      ExecStopPost=systemctl stop moonlight.service
 
 /etc/systemd/system/moonlight-pulseaudio.service:
   file.managed:
@@ -156,5 +176,5 @@ service_pulseaudio_enable:
 
 service_moonlight_autolauncher_enable:
     service.enabled:
-    - name: moonlight_autolauncher.service
+    - name: moonlight-autolauncher.service
 
