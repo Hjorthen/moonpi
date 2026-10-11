@@ -14,15 +14,14 @@ create_moonlight_user:
       [Unit]
       Description=Controller connected
       Wants=controller-active.target
-      # Stop the timeout timer if it has been enabled
-      After=controller-active-timeout.timer
-      Conflicts=controller-active-timeout.timer
       # If the controller stops, so should we
       StopPropagatedFrom=dev-input-gamecontroller.device
       After=dev-input-gamecontroller.device
       [Service]
       Type=oneshot
       RemainAfterExit=yes
+      # Forcible stop the timer if its active. Necessary since "Conflicts=" config don't seem to stop it
+      ExecStartPre=/bin/systemctl stop controller-active-timeout.timer || true
       ExecStart=/bin/true
       # Start a timeout to stop the controller-active.target
       ExecStop=/bin/systemctl start controller-active-timeout.timer
@@ -46,6 +45,8 @@ create_moonlight_user:
      Description=Stop the controller-active target after a delay
      [Service]
      Type=oneshot
+     # If the controller has reconnected, don't stop the target.
+     ExecCondition=!/bin/systemctl is-active --quiet controller-connected.service
      RemainAfterExit=no
      ExecStart=/bin/systemctl stop controller-active.target
 
