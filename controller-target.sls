@@ -21,7 +21,8 @@ create_moonlight_user:
       Type=oneshot
       RemainAfterExit=yes
       # Forcible stop the timer if its active. Necessary since "Conflicts=" config don't seem to stop it
-      ExecStartPre=/bin/systemctl stop controller-active-timeout.timer || true
+      # Tagging with '-' to prevent the service from failing if no controller could be stopped..
+      ExecStartPre=-/bin/systemctl stop controller-active-timeout.timer
       ExecStart=/bin/true
       # Start a timeout to stop the controller-active.target
       ExecStop=/bin/systemctl start controller-active-timeout.timer
@@ -46,7 +47,7 @@ create_moonlight_user:
      [Service]
      Type=oneshot
      # If the controller has reconnected, don't stop the target.
-     ExecCondition=!/bin/systemctl is-active --quiet controller-connected.service
+     ExecCondition=/bin/sh -c 'case "$(/bin/systemctl is-active controller-connected.service)" in active|activating) exit 1 ;; *) exit 0 ;; esac'    
      RemainAfterExit=no
      ExecStart=/bin/systemctl stop controller-active.target
 
